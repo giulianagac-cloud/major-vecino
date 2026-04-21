@@ -842,7 +842,7 @@ function setupRecognition(onResult, onTimeout) {
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return null;
   const r=new SR();
-  r.lang='es-AR'; r.continuous=false; r.interimResults=false; r.maxAlternatives=1;
+  r.lang='es-ES'; r.continuous=false; r.interimResults=false; r.maxAlternatives=1;
 
   let timeoutId=null;
   const clearT=()=>{ if(timeoutId){ clearTimeout(timeoutId); timeoutId=null; } };
