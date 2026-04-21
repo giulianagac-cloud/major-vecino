@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
       messages: messages
     }));
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,12 +33,13 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      return res.status(response.status).json({ error: error.error?.message || 'Anthropic API error' });
+    const data = await anthropicRes.json();
+
+    if (!anthropicRes.ok) {
+      console.error('Anthropic error body:', JSON.stringify(data));
+      return res.status(400).json({ error: data });
     }
 
-    const data = await response.json();
     return res.status(200).json(data);
   } catch (err) {
     console.error('Error completo:', err);
