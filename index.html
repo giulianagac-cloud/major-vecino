@@ -829,7 +829,8 @@ async function sendMessage() {
   const reply = await callClaude(text);
   removeTyping();
   addMessage('bot', reply);
-  speak(reply);
+  const isVoiceMode = document.getElementById('tab-voice').classList.contains('active');
+  if (isVoiceMode) speak(reply);
   isLoading=false;
 }
 
