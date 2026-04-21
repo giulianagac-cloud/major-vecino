@@ -433,6 +433,16 @@ nav {
 }
 .voice-status { font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.9); }
 .voice-hint { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; line-height: 1.6; }
+.voice-reset {
+  font-size: 12px; font-weight: 500;
+  padding: 7px 20px; border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.4);
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.voice-reset:hover { border-color: rgba(220,80,80,0.5); color: rgba(255,120,120,0.8); background: rgba(220,50,50,0.08); }
 
 .bot-footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); }
 .bot-footer span { color: rgba(255,255,255,0.4); font-weight: 500; }
@@ -622,6 +632,7 @@ footer span { color: rgba(255,255,255,0.4); }
             </div>
             <div class="voice-status" id="voice-status">Tocá para hablar</div>
             <div class="voice-hint">Major Vecino te escucha<br>y responde en voz alta</div>
+            <button class="voice-reset" onclick="resetVoice()">↺ Nueva conversación</button>
           </div>
         </div>
 
@@ -820,27 +831,55 @@ function sendChip(text) { document.getElementById('inp').value=text; sendMessage
 function handleKey(e) { if(e.key==='Enter') sendMessage(); }
 
 // ─── RECONOCIMIENTO DE VOZ ───
-function setupRecognition(onResult) {
+function setupRecognition(onResult, onTimeout) {
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return null;
   const r=new SR();
-  r.lang='es-AR'; r.continuous=false; r.interimResults=false;
-  r.onresult=(e)=>onResult(e.results[0][0].transcript);
-  r.onerror=()=>{ isListening=false; };
-  r.onend=()=>{ isListening=false; };
+  r.lang='es-AR'; r.continuous=false; r.interimResults=false; r.maxAlternatives=1;
+
+  let timeoutId=null;
+  const clearT=()=>{ if(timeoutId){ clearTimeout(timeoutId); timeoutId=null; } };
+
+  r.onstart=()=>{
+    timeoutId=setTimeout(()=>{
+      r.stop();
+      if(onTimeout) onTimeout();
+    }, 5000);
+  };
+  r.onresult=(e)=>{ clearT(); onResult(e.results[0][0].transcript); };
+  r.onerror=(e)=>{ clearT(); console.error('SpeechRecognition error:', e.error); isListening=false; };
+  r.onend=()=>{ clearT(); isListening=false; };
   return r;
 }
 
 function toggleMic() {
   const btn=document.getElementById('mic-btn');
   if(isListening){ if(recognition)recognition.stop(); btn.classList.remove('listening'); isListening=false; return; }
-  recognition=setupRecognition((t)=>{
-    document.getElementById('inp').value=t;
-    btn.classList.remove('listening'); isListening=false;
-    sendMessage();
-  });
+  recognition=setupRecognition(
+    (t)=>{
+      document.getElementById('inp').value=t;
+      btn.classList.remove('listening'); isListening=false;
+      sendMessage();
+    },
+    ()=>{
+      btn.classList.remove('listening'); isListening=false;
+      document.getElementById('inp').placeholder='No te escuché, tocá de nuevo';
+      setTimeout(()=>{ document.getElementById('inp').placeholder='Escribí tu consulta...'; }, 3000);
+    }
+  );
   if(!recognition){ alert('Tu navegador no soporta reconocimiento de voz.'); return; }
   recognition.start(); btn.classList.add('listening'); isListening=true;
+}
+
+function resetVoice() {
+  if(isListening && recognition) recognition.stop();
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  isListening=false; history=[];
+  const vw=document.getElementById('voice-sphere-wrap');
+  const st=document.getElementById('voice-status');
+  vw.classList.remove('listening','speaking');
+  st.textContent='Tocá para hablar';
+  if(lgSphere) lgSphere.setState('idle');
 }
 
 async function toggleVoiceMic() {
@@ -852,13 +891,22 @@ async function toggleVoiceMic() {
     if(lgSphere)lgSphere.setState('idle');
     isListening=false; return;
   }
-  recognition=setupRecognition(async(t)=>{
-    vw.classList.remove('listening'); st.textContent='Procesando...';
-    if(lgSphere)lgSphere.setState('idle');
-    isListening=false;
-    const reply=await callClaude(t);
-    speak(reply);
-  });
+  recognition=setupRecognition(
+    async(t)=>{
+      vw.classList.remove('listening'); st.textContent='Procesando...';
+      if(lgSphere)lgSphere.setState('idle');
+      isListening=false;
+      const reply=await callClaude(t);
+      speak(reply);
+    },
+    ()=>{
+      vw.classList.remove('listening');
+      st.textContent='No te escuché, tocá de nuevo';
+      if(lgSphere)lgSphere.setState('idle');
+      isListening=false;
+      setTimeout(()=>{ st.textContent='Tocá para hablar'; }, 3000);
+    }
+  );
   if(!recognition){ alert('Tu navegador no soporta reconocimiento de voz.'); return; }
   recognition.start();
   vw.classList.add('listening'); st.textContent='Escuchando...';
