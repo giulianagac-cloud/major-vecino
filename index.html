@@ -803,10 +803,16 @@ async function callClaude(msg) {
       body: JSON.stringify({ messages: history, system: SYSTEM_PROMPT })
     });
     const data = await res.json();
+    console.log('Respuesta del backend (status', res.status + '):', JSON.stringify(data));
+    if (!res.ok || data.error) {
+      console.error('Error del backend:', data.error, data.details);
+      return 'Error: ' + (data.error || 'respuesta inesperada del servidor');
+    }
     const reply = data.content?.[0]?.text || 'Disculpá, hubo un problema técnico.';
     history.push({role:'assistant', content:reply});
     return reply;
   } catch(e) {
+    console.error('Error de red:', e);
     return 'Disculpá, no pude conectarme al sistema. Intentá de nuevo.';
   }
 }
