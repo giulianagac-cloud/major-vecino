@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Major Vecino — IA Municipal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue-deep: #001a3a;
+  --blue-mid: #003366;
+  --blue-bright: #0066cc;
+  --blue-glow: #0099ff;
+  --cyan: #00c8ff;
+  --white: #ffffff;
+  --grey-light: rgba(255,255,255,0.07);
+  --grey-border: rgba(255,255,255,0.1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000;
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── FONDO AMBIENTAL ─── */
+.bg-ambient {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+}
+.bg-ambient::before {
+  content: '';
+  position: absolute;
+  width: 700px; height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,80,200,0.15) 0%, transparent 70%);
+  top: -200px; left: -150px;
+}
+.bg-ambient::after {
+  content: '';
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,160,255,0.08) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 48px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+}
+.nav-logo-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #0099ff, #003399 60%, #000c28);
+  box-shadow: 0 0 12px rgba(0,150,255,0.5);
+  flex-shrink: 0;
+}
+.nav-badge {
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px; border-radius: 50px;
+  background: rgba(0,100,200,0.2);
+  border: 1px solid rgba(0,150,255,0.3);
+  color: rgba(255,255,255,0.6);
+}
+.nav-cta {
+  font-size: 13px; font-weight: 500;
+  padding: 8px 20px; border-radius: 50px;
+  background: rgba(0,100,200,0.4);
+  border: 1px solid rgba(0,150,255,0.4);
+  color: #fff; cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.nav-cta:hover { background: rgba(0,130,230,0.6); box-shadow: 0 0 20px rgba(0,150,255,0.3); }
+
+/* ─── HERO ─── */
+.hero {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 120px 24px 80px;
+  text-align: center;
+}
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  padding: 6px 16px; border-radius: 50px;
+  background: rgba(0,100,200,0.15);
+  border: 1px solid rgba(0,150,255,0.25);
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 32px;
+  text-transform: uppercase;
+}
+.hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: #0099ff; animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero h1 {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 24px;
+}
+.hero h1 span {
+  background: linear-gradient(135deg, #fff 30%, #0099ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: rgba(255,255,255,0.5);
+  font-weight: 300;
+  max-width: 560px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+}
+
+.hero-stats {
+  display: flex; gap: 40px; justify-content: center;
+  margin-bottom: 60px;
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat-num {
+  font-size: 28px; font-weight: 700;
+  background: linear-gradient(135deg, #fff, #0099ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.stat-label { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+.hero-scroll {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-size: 12px; color: rgba(255,255,255,0.3);
+  animation: float 2s ease-in-out infinite;
+}
+.hero-scroll svg { opacity: 0.4; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+/* ─── FEATURES ─── */
+.features {
+  position: relative; z-index: 1;
+  padding: 80px 24px;
+  max-width: 1100px; margin: 0 auto;
+}
+.section-label {
+  text-align: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  color: rgba(255,255,255,0.3); text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.section-title {
+  text-align: center;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 700; letter-spacing: -1px;
+  margin-bottom: 56px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.feat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.2s;
+}
+.feat-card:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(0,150,255,0.2);
+  transform: translateY(-2px);
+}
+.feat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(0,100,200,0.15);
+  border: 1px solid rgba(0,150,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 16px;
+}
+.feat-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.feat-desc { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+/* ─── DEMO SECTION ─── */
+.demo-section {
+  position: relative; z-index: 1;
+  padding: 80px 24px;
+  max-width: 1100px; margin: 0 auto;
+}
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+@media(max-width: 860px) {
+  .demo-grid { grid-template-columns: 1fr; }
+  .demo-copy { order: 2; }
+  .demo-bot { order: 1; }
+}
+
+.demo-copy { padding: 0 20px; }
+.demo-copy h2 {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 700; letter-spacing: -1px;
+  line-height: 1.2; margin-bottom: 20px;
+}
+.demo-copy p {
+  font-size: 15px; color: rgba(255,255,255,0.5);
+  line-height: 1.7; margin-bottom: 28px;
+}
+.demo-copy ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.demo-copy li {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 14px; color: rgba(255,255,255,0.6);
+}
+.demo-copy li::before {
+  content: '→';
+  color: #0099ff; font-weight: 600;
+  flex-shrink: 0; margin-top: 1px;
+}
+
+/* ─── BOT CONTAINER ─── */
+.bot-container {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+
+.toggle {
+  display: flex;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50px;
+  padding: 4px; gap: 2px;
+  backdrop-filter: blur(12px);
+}
+.tab {
+  padding: 7px 28px; border-radius: 50px;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+  color: rgba(255,255,255,0.45);
+  border: none; background: transparent;
+  font-family: 'Inter', sans-serif;
+}
+.tab.active {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.card {
+  width: 100%; max-width: 400px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 28px;
+  backdrop-filter: blur(20px);
+  display: flex; flex-direction: column;
+  overflow: hidden; min-height: 520px;
+}
+
+/* esfera */
+.sphere-area {
+  display: flex; justify-content: center;
+  padding: 24px 0 12px;
+}
+.sphere-wrap {
+  width: 72px; height: 72px;
+  border-radius: 50%; overflow: hidden;
+  animation: breathe 4s ease-in-out infinite;
+  position: relative;
+}
+.sphere-wrap::after {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  box-shadow: 0 0 20px rgba(0,160,220,0.5), 0 0 40px rgba(0,120,200,0.2);
+  pointer-events: none;
+}
+.sphere-wrap.speaking { animation: breathe 4s ease-in-out infinite, speak-glow 0.5s ease-in-out infinite alternate; }
+.sphere-wrap.listening { animation: breathe 4s ease-in-out infinite, listen-glow 0.7s ease-in-out infinite alternate; }
+@keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes speak-glow {
+  from { filter: drop-shadow(0 0 8px rgba(0,200,255,0.6)); }
+  to   { filter: drop-shadow(0 0 20px rgba(0,200,255,0.9)); }
+}
+@keyframes listen-glow {
+  from { filter: drop-shadow(0 0 6px rgba(0,180,255,0.5)); }
+  to   { filter: drop-shadow(0 0 24px rgba(0,180,255,1)); }
+}
+
+/* mensajes */
+.messages {
+  flex: 1; overflow-y: auto;
+  padding: 8px 16px 12px;
+  display: flex; flex-direction: column;
+  gap: 12px; min-height: 260px; max-height: 300px;
+  scrollbar-width: none;
+}
+.messages::-webkit-scrollbar { display: none; }
+.msg { display: flex; flex-direction: column; }
+.msg.user { align-items: flex-end; }
+.bubble {
+  max-width: 80%; padding: 11px 15px;
+  border-radius: 18px; font-size: 13.5px; line-height: 1.5;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  border-bottom-left-radius: 4px;
+}
+.msg.user .bubble {
+  background: rgba(0,100,200,0.25);
+  border: 1px solid rgba(0,150,255,0.4);
+  box-shadow: 0 0 12px rgba(0,120,255,0.2), inset 0 0 20px rgba(0,100,200,0.1);
+  border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 18px;
+}
+.bubble.typing { display: flex; align-items: center; gap: 5px; padding: 12px 16px; }
+.dot { width: 6px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 50%; animation: eldot 1.2s infinite; }
+.dot:nth-child(2){animation-delay:0.2s} .dot:nth-child(3){animation-delay:0.4s}
+@keyframes eldot { 0%,60%,100%{transform:translateY(0);opacity:0.3} 30%{transform:translateY(-5px);opacity:1} }
+
+/* chips */
+.chips {
+  display: flex; gap: 6px;
+  padding: 0 14px 10px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  white-space: nowrap; font-size: 11px; font-weight: 500;
+  padding: 5px 12px; border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.6);
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+.chip:hover { border-color: rgba(0,160,255,0.6); color: #fff; background: rgba(0,100,200,0.15); }
+
+/* input */
+.input-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.mic-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+}
+.mic-btn:hover { background: rgba(255,255,255,0.1); }
+.mic-btn.listening {
+  background: rgba(220,50,50,0.2); border-color: rgba(220,50,50,0.5);
+  animation: mic-pulse 1s infinite;
+}
+@keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(220,50,50,0.4)} 50%{box-shadow:0 0 0 8px rgba(220,50,50,0)} }
+.mic-btn svg { width: 18px; height: 18px; }
+
+.inp {
+  flex: 1; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50px; padding: 10px 18px;
+  font-size: 13.5px; font-family: 'Inter', sans-serif;
+  background: rgba(255,255,255,0.06);
+  color: #fff; outline: none; transition: border-color 0.15s;
+}
+.inp:focus { border-color: rgba(0,160,255,0.5); }
+.inp::placeholder { color: rgba(255,255,255,0.25); }
+
+.send-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(0,100,200,0.6);
+  border: 1px solid rgba(0,160,255,0.4);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+  box-shadow: 0 0 12px rgba(0,120,255,0.3);
+}
+.send-btn:hover { background: rgba(0,130,230,0.8); box-shadow: 0 0 20px rgba(0,150,255,0.5); }
+.send-btn:active { transform: scale(0.94); }
+.send-btn svg { width: 14px; height: 14px; fill: #fff; }
+
+/* modo voz */
+.voice-mode {
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex: 1; gap: 20px; padding: 40px 24px;
+}
+.voice-sphere-wrap {
+  width: 130px; height: 130px; border-radius: 50%;
+  overflow: hidden; cursor: pointer;
+  animation: vbreathe 4s ease-in-out infinite;
+  position: relative;
+}
+.voice-sphere-wrap::after {
+  content: '';
+  position: absolute; inset: -2px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  box-shadow: 0 0 30px rgba(0,160,220,0.6), 0 0 60px rgba(0,120,200,0.3);
+  pointer-events: none;
+}
+.voice-sphere-wrap.listening { animation: vbreathe 4s ease-in-out infinite, vlisten 0.6s ease-in-out infinite alternate; }
+.voice-sphere-wrap.speaking  { animation: vbreathe 4s ease-in-out infinite, vspeak  0.5s ease-in-out infinite alternate; }
+@keyframes vbreathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
+@keyframes vlisten {
+  from { filter: drop-shadow(0 0 10px rgba(0,200,255,0.7)); }
+  to   { filter: drop-shadow(0 0 30px rgba(0,200,255,1)); }
+}
+@keyframes vspeak {
+  from { transform:scale(1.02); filter:drop-shadow(0 0 12px rgba(0,200,255,0.8)); }
+  to   { transform:scale(1.1);  filter:drop-shadow(0 0 28px rgba(0,200,255,1)); }
+}
+.voice-status { font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.9); }
+.voice-hint { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; line-height: 1.6; }
+
+.bot-footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); }
+.bot-footer span { color: rgba(255,255,255,0.4); font-weight: 500; }
+
+/* ─── CTA FINAL ─── */
+.cta-section {
+  position: relative; z-index: 1;
+  padding: 80px 24px 120px;
+  text-align: center;
+}
+.cta-card {
+  max-width: 640px; margin: 0 auto;
+  background: rgba(0,60,150,0.12);
+  border: 1px solid rgba(0,100,200,0.2);
+  border-radius: 28px;
+  padding: 56px 40px;
+  backdrop-filter: blur(20px);
+}
+.cta-card h2 {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700; letter-spacing: -1px;
+  margin-bottom: 16px;
+}
+.cta-card p {
+  font-size: 15px; color: rgba(255,255,255,0.5);
+  line-height: 1.7; margin-bottom: 36px;
+}
+.cta-built {
+  font-size: 12px; color: rgba(255,255,255,0.25);
+  margin-top: 24px; letter-spacing: 0.5px;
+}
+.cta-built span { color: rgba(255,255,255,0.5); font-weight: 500; }
+
+/* ─── FOOTER ─── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 28px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: rgba(255,255,255,0.25);
+  flex-wrap: wrap; gap: 12px;
+}
+footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+<div class="bg-ambient"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    Major Vecino
+  </div>
+  <div class="nav-badge">Demo · IA Municipal</div>
+  <a class="nav-cta" href="#demo">Probarlo ahora</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">
+    <div class="hero-tag-dot"></div>
+    Nuevo módulo para Major Municipal
+  </div>
+
+  <h1>El vecino habla.<br><span>El municipio responde.</span></h1>
+
+  <p class="hero-sub">
+    Un asistente con IA embebible en cualquier web municipal. Sin formularios, sin filas, sin apps. El vecino pregunta en voz alta y recibe respuesta en segundos.
+  </p>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">+2M</div>
+      <div class="stat-label">vecinos en La Matanza</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">30%</div>
+      <div class="stat-label">son adultos mayores</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">letras que necesitan escribir</div>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 5v14M5 12l7 7 7-7"/>
+    </svg>
+    Probalo abajo
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-label">Capacidades</div>
+  <h2 class="section-title">Todo lo que un vecino necesita,<br>sin tocar un teclado</h2>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🎙️</div>
+      <div class="feat-title">Voz bidireccional</div>
+      <div class="feat-desc">El vecino habla, el bot escucha y responde en audio. Sin escribir una sola letra. Funciona con Web Speech API nativo del navegador.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🤖</div>
+      <div class="feat-title">IA conversacional real</div>
+      <div class="feat-desc">No es un menú de opciones. Entiende lenguaje natural, simula consultas al sistema y responde con contexto municipal real.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏛️</div>
+      <div class="feat-title">Integrable con Major</div>
+      <div class="feat-desc">Diseñado para conectarse con los módulos de Major: deudas, turnos, trámites. Una sola línea de código para embeber en cualquier web.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👴</div>
+      <div class="feat-title">Accesible para todos</div>
+      <div class="feat-desc">Pensado especialmente para adultos mayores. Interface mínima, letra grande, respuesta por voz. Cero fricción.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section" id="demo">
+  <div class="demo-grid">
+
+    <div class="demo-copy">
+      <h2>Probalo en vivo.<br>Con IA real adentro.</h2>
+      <p>Hacé clic en <strong>Voz</strong> y hablale directamente. O usá el chat. Preguntale por deudas, turnos, trámites, horarios — el bot responde como si estuviera conectado al sistema municipal.</p>
+      <ul>
+        <li>Consultá tu deuda de ABL o tasa</li>
+        <li>Pedí turno en el centro de salud</li>
+        <li>Preguntá el estado de un trámite</li>
+        <li>Consultá horarios y ubicaciones</li>
+        <li>Hablale — te responde en voz alta</li>
+      </ul>
+    </div>
+
+    <div class="demo-bot">
+      <div class="bot-container">
+        <div class="toggle">
+          <button class="tab active" id="tab-chat" onclick="switchTab('chat')">Chat</button>
+          <button class="tab" id="tab-voice" onclick="switchTab('voice')">Voz</button>
+        </div>
+
+        <div class="card">
+          <div class="sphere-area">
+            <div class="sphere-wrap" id="sphere-wrap">
+              <canvas id="sphere-sm" width="72" height="72"></canvas>
+            </div>
+          </div>
+
+          <div class="messages" id="messages">
+            <div class="msg bot">
+              <div class="bubble">Hola, soy <strong>Major Vecino</strong>. Puedo ayudarte con trámites, deudas, turnos y consultas municipales. ¿En qué te ayudo hoy?</div>
+            </div>
+          </div>
+
+          <div class="chips" id="chips">
+            <div class="chip" onclick="sendChip('¿Cuánto debo de ABL?')">Deuda ABL</div>
+            <div class="chip" onclick="sendChip('Quiero sacar un turno en salud')">Sacar turno</div>
+            <div class="chip" onclick="sendChip('¿En qué estado está mi trámite?')">Mi trámite</div>
+            <div class="chip" onclick="sendChip('¿Cómo habilito un comercio?')">Habilitaciones</div>
+            <div class="chip" onclick="sendChip('Horarios de atención')">Horarios</div>
+          </div>
+
+          <div class="input-row" id="input-row">
+            <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Hablar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round">
+                <rect x="9" y="2" width="6" height="11" rx="3"/>
+                <path d="M5 10a7 7 0 0 0 14 0"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="9" y1="22" x2="15" y2="22"/>
+              </svg>
+            </button>
+            <input class="inp" id="inp" placeholder="Escribí tu consulta..." onkeydown="handleKey(event)"/>
+            <button class="send-btn" onclick="sendMessage()">
+              <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+            </button>
+          </div>
+
+          <div class="voice-mode" id="voice-mode">
+            <div class="voice-sphere-wrap" id="voice-sphere-wrap" onclick="toggleVoiceMic()">
+              <canvas id="sphere-lg" width="130" height="130"></canvas>
+            </div>
+            <div class="voice-status" id="voice-status">Tocá para hablar</div>
+            <div class="voice-hint">Major Vecino te escucha<br>y responde en voz alta</div>
+          </div>
+        </div>
+
+        <div class="bot-footer">Powered by <span>Major Municipal</span> · IA conversacional</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-card">
+    <h2>¿Querés integrar esto<br>en Major Municipal?</h2>
+    <p>Esta demo fue construida como prototipo funcional. Con acceso a los módulos reales de Major, el bot puede consultar deudas, asignar turnos y gestionar trámites en tiempo real.</p>
+    <div class="cta-built">Desarrollado por <span>Giuliana Gac · Nexora Intelligence</span></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>Major Vecino</span> — Prototipo funcional · 2026
+  <div>Desarrollado por <span>Nexora Intelligence</span></div>
+</footer>
+
+<script>
+// ─── ESFERA ───
+function drawSphere(canvasId, size) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  const ctx = canvas.getContext('2d');
+  const cx = size/2, cy = size/2, r = size/2;
+  let angle = 0, frame = 0, state = 'idle';
+
+  function draw() {
+    ctx.clearRect(0,0,size,size);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+
+    const base = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    base.addColorStop(0,'#003a6e'); base.addColorStop(0.5,'#001f4a'); base.addColorStop(1,'#000c28');
+    ctx.fillStyle=base; ctx.fillRect(0,0,size,size);
+
+    const speed = state==='speaking'?0.05:state==='listening'?0.03:0.01;
+    angle+=speed;
+    for(let i=0;i<24;i++){
+      const a=angle+(i/24)*Math.PI*2;
+      const bright=0.08+0.12*Math.abs(Math.sin(i*1.8+frame*0.02));
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(a);
+      const rg=ctx.createLinearGradient(0,0,0,-r);
+      rg.addColorStop(0,`rgba(0,200,255,${bright*1.5})`);
+      rg.addColorStop(0.4,`rgba(0,160,220,${bright})`);
+      rg.addColorStop(1,'rgba(0,80,180,0)');
+      ctx.beginPath(); ctx.moveTo(-r*0.12,0); ctx.lineTo(r*0.12,0); ctx.lineTo(0,-r); ctx.closePath();
+      ctx.fillStyle=rg; ctx.fill(); ctx.restore();
+    }
+
+    const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,r*0.5);
+    glow.addColorStop(0,'rgba(0,220,255,0.35)'); glow.addColorStop(0.5,'rgba(0,160,220,0.1)'); glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow; ctx.fillRect(0,0,size,size);
+
+    const shine=ctx.createRadialGradient(cx-r*0.3,cy-r*0.35,0,cx-r*0.1,cy-r*0.1,r*0.65);
+    shine.addColorStop(0,'rgba(255,255,255,0.7)'); shine.addColorStop(0.25,'rgba(255,255,255,0.2)'); shine.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=shine; ctx.fillRect(0,0,size,size);
+
+    ctx.restore(); frame++; requestAnimationFrame(draw);
+  }
+  draw();
+  return { setState: s => { state = s; } };
+}
+
+const smSphere = drawSphere('sphere-sm', 72);
+const lgSphere = drawSphere('sphere-lg', 130);
+
+// ─── SYSTEM PROMPT ───
+const SYSTEM_PROMPT = `Sos Major Vecino, el asistente virtual de atención al ciudadano del Sistema Major Municipal de Argentina. Respondés consultas de vecinos sobre trámites municipales, deudas de tasas (ABL, automotores, comercios), turnos en hospitales o centros de salud municipales, habilitaciones comerciales, y gestión pública en general.
+
+Tu tono es amable, claro y profesional. Usás español rioplatense. Sos muy conciso: máximo 2-3 oraciones. Tus respuestas serán leídas en voz alta, así que evitá asteriscos, listas con guiones o markdown.
+
+Cuando te pregunten por datos específicos (deudas, estado de trámite, turnos disponibles) simulá acceso al sistema con datos ficticios pero realistas. Por ejemplo:
+- "Según el sistema, su deuda de ABL al día de hoy es de $45.320. Vence el 30 de abril."
+- "Encontré su trámite N° 2024-08841. Está en revisión en el área de habilitaciones desde el martes."
+- "Hay turnos disponibles para el jueves 24 a las 10:30 y a las 15:00 en el Centro de Salud N°3."
+
+Nunca digas que sos ChatGPT ni Claude. Sos Major Vecino, el asistente oficial del municipio.`;
+
+let history=[], isLoading=false, recognition=null, isListening=false;
+
+// ─── TABS ───
+function switchTab(mode) {
+  document.getElementById('tab-chat').classList.toggle('active', mode==='chat');
+  document.getElementById('tab-voice').classList.toggle('active', mode==='voice');
+  const isVoice = mode==='voice';
+  document.getElementById('messages').style.display = isVoice?'none':'flex';
+  document.getElementById('chips').style.display = isVoice?'none':'flex';
+  document.getElementById('input-row').style.display = isVoice?'none':'flex';
+  document.querySelector('.sphere-area').style.display = isVoice?'none':'flex';
+  document.getElementById('voice-mode').style.display = isVoice?'flex':'none';
+  if(isListening && recognition) recognition.stop();
+}
+
+// ─── MENSAJES ───
+function scrollBottom() { const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; }
+
+function addMessage(role, text) {
+  const msgs=document.getElementById('messages');
+  const div=document.createElement('div');
+  div.className='msg '+(role==='user'?'user':'bot');
+  div.innerHTML='<div class="bubble">'+text+'</div>';
+  msgs.appendChild(div); scrollBottom();
+}
+
+function showTyping() {
+  const msgs=document.getElementById('messages');
+  const div=document.createElement('div');
+  div.className='msg bot'; div.id='typing';
+  div.innerHTML='<div class="bubble typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  msgs.appendChild(div); scrollBottom();
+}
+function removeTyping() { const t=document.getElementById('typing'); if(t)t.remove(); }
+
+// ─── VOZ ───
+function speak(text) {
+  const synth=window.speechSynthesis;
+  if(!synth) return;
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='es-AR'; u.rate=1.0; u.pitch=1.0;
+
+  const voices = synth.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('fem'))
+    || voices.find(v => v.lang.startsWith('es'))
+    || null;
+  if(esVoice) u.voice = esVoice;
+
+  const sw=document.getElementById('sphere-wrap');
+  const vw=document.getElementById('voice-sphere-wrap');
+  const st=document.getElementById('voice-status');
+  u.onstart=()=>{
+    if(sw) sw.classList.add('speaking');
+    if(vw) vw.classList.add('speaking');
+    if(st) st.textContent='Hablando...';
+    if(smSphere) smSphere.setState('speaking');
+    if(lgSphere) lgSphere.setState('speaking');
+  };
+  u.onend=()=>{
+    if(sw) sw.classList.remove('speaking');
+    if(vw) vw.classList.remove('speaking');
+    if(st) st.textContent='Tocá para hablar';
+    if(smSphere) smSphere.setState('idle');
+    if(lgSphere) lgSphere.setState('idle');
+  };
+  synth.speak(u);
+}
+
+if(window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  window.speechSynthesis.getVoices();
+}
+
+// ─── API CLAUDE (via backend) ───
+async function callClaude(msg) {
+  history.push({role:'user', content:msg});
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history, system: SYSTEM_PROMPT })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Disculpá, hubo un problema técnico.';
+    history.push({role:'assistant', content:reply});
+    return reply;
+  } catch(e) {
+    return 'Disculpá, no pude conectarme al sistema. Intentá de nuevo.';
+  }
+}
+
+// ─── SEND ───
+async function sendMessage() {
+  if(isLoading) return;
+  const inp=document.getElementById('inp');
+  const text=inp.value.trim();
+  if(!text) return;
+  inp.value=''; isLoading=true;
+  addMessage('user', text);
+  showTyping();
+  const reply = await callClaude(text);
+  removeTyping();
+  addMessage('bot', reply);
+  speak(reply);
+  isLoading=false;
+}
+
+function sendChip(text) { document.getElementById('inp').value=text; sendMessage(); }
+function handleKey(e) { if(e.key==='Enter') sendMessage(); }
+
+// ─── RECONOCIMIENTO DE VOZ ───
+function setupRecognition(onResult) {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR) return null;
+  const r=new SR();
+  r.lang='es-AR'; r.continuous=false; r.interimResults=false;
+  r.onresult=(e)=>onResult(e.results[0][0].transcript);
+  r.onerror=()=>{ isListening=false; };
+  r.onend=()=>{ isListening=false; };
+  return r;
+}
+
+function toggleMic() {
+  const btn=document.getElementById('mic-btn');
+  if(isListening){ if(recognition)recognition.stop(); btn.classList.remove('listening'); isListening=false; return; }
+  recognition=setupRecognition((t)=>{
+    document.getElementById('inp').value=t;
+    btn.classList.remove('listening'); isListening=false;
+    sendMessage();
+  });
+  if(!recognition){ alert('Tu navegador no soporta reconocimiento de voz.'); return; }
+  recognition.start(); btn.classList.add('listening'); isListening=true;
+}
+
+async function toggleVoiceMic() {
+  const vw=document.getElementById('voice-sphere-wrap');
+  const st=document.getElementById('voice-status');
+  if(isListening){
+    if(recognition)recognition.stop();
+    vw.classList.remove('listening'); st.textContent='Tocá para hablar';
+    if(lgSphere)lgSphere.setState('idle');
+    isListening=false; return;
+  }
+  recognition=setupRecognition(async(t)=>{
+    vw.classList.remove('listening'); st.textContent='Procesando...';
+    if(lgSphere)lgSphere.setState('idle');
+    isListening=false;
+    const reply=await callClaude(t);
+    speak(reply);
+  });
+  if(!recognition){ alert('Tu navegador no soporta reconocimiento de voz.'); return; }
+  recognition.start();
+  vw.classList.add('listening'); st.textContent='Escuchando...';
+  if(lgSphere)lgSphere.setState('listening');
+  isListening=true;
+}
+</script>
+</body>
+</html>
