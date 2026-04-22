@@ -159,32 +159,6 @@ nav {
 .hero-scroll svg { opacity: 0.4; }
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
-/* ─── HERO DECO IMAGE ─── */
-.hero-deco {
-  position: absolute;
-  top: 0; right: 0;
-  width: 40%; height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-.hero-deco img {
-  width: 100%; height: 80%;
-  margin-top: 10%;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0.25;
-  display: block;
-}
-.hero-deco::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, #0A1628 0%, transparent 50%);
-  z-index: 1;
-}
-@media (max-width: 768px) {
-  .hero-deco { display: none; }
-}
 
 /* ─── HERO PHONE MOCKUP ─── */
 @keyframes heroPhoneIn {
@@ -670,9 +644,6 @@ footer span { color: rgba(255,255,255,0.4); }
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-deco">
-    <img src="phone.jpg" alt="" aria-hidden="true"/>
-  </div>
   <div class="hero-tag">
     <div class="hero-tag-dot"></div>
     Nuevo módulo para Major Municipal
