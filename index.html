@@ -443,6 +443,24 @@ nav {
   font-family: 'Inter', sans-serif;
 }
 .voice-reset:hover { border-color: rgba(220,80,80,0.5); color: rgba(255,120,120,0.8); background: rgba(220,50,50,0.08); }
+.rec-indicator {
+  display: none; flex-direction: column; align-items: center; gap: 6px;
+  width: 180px;
+}
+.rec-indicator.active { display: flex; }
+.rec-bar-track {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+.rec-bar-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  background: linear-gradient(90deg, #0099ff, #00c8ff);
+  transition: width 0.1s linear;
+}
+.rec-timer {
+  font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px;
+}
 
 .bot-footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); }
 .bot-footer span { color: rgba(255,255,255,0.4); font-weight: 500; }
@@ -631,6 +649,10 @@ footer span { color: rgba(255,255,255,0.4); }
               <canvas id="sphere-lg" width="130" height="130"></canvas>
             </div>
             <div class="voice-status" id="voice-status">Tocá para hablar</div>
+            <div class="rec-indicator" id="rec-indicator">
+              <div class="rec-bar-track"><div class="rec-bar-fill" id="rec-bar-fill"></div></div>
+              <div class="rec-timer" id="rec-timer">0.0s / 8s</div>
+            </div>
             <div class="voice-hint">Major Vecino te escucha<br>y responde en voz alta</div>
             <button class="voice-reset" onclick="resetVoice()">↺ Nueva conversación</button>
           </div>
@@ -839,8 +861,10 @@ function handleKey(e) { if(e.key==='Enter') sendMessage(); }
 
 // ─── GRABACIÓN CON MEDIARECORDER + WHISPER ───
 let mediaRecorder = null, audioChunks = [], activeStream = null;
-const MAX_RECORDING_MS = 30000;
-let recordingTimeout = null;
+const MAX_RECORDING_MS = 8000;
+const SILENCE_THRESHOLD = 12;  // RMS 0-255
+const SILENCE_DURATION_MS = 1500;
+let recordingTimeout = null, silenceInterval = null, timerInterval = null;
 
 function getSupportedMimeType() {
   const types = ['audio/mp4', 'audio/webm', 'audio/ogg'];
@@ -869,15 +893,61 @@ async function transcribeAudio(blob) {
   return data.text;
 }
 
+function startRecordingIndicator() {
+  const indicator = document.getElementById('rec-indicator');
+  const fill = document.getElementById('rec-bar-fill');
+  const timer = document.getElementById('rec-timer');
+  if (indicator) indicator.classList.add('active');
+  const start = Date.now();
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - start) / 1000;
+    const pct = Math.min(100, (elapsed / (MAX_RECORDING_MS / 1000)) * 100);
+    if (fill) fill.style.width = pct + '%';
+    if (timer) timer.textContent = elapsed.toFixed(1) + 's / 8s';
+  }, 100);
+}
+
+function stopRecordingIndicator() {
+  clearInterval(timerInterval); timerInterval = null;
+  const indicator = document.getElementById('rec-indicator');
+  const fill = document.getElementById('rec-bar-fill');
+  if (indicator) indicator.classList.remove('active');
+  if (fill) fill.style.width = '0%';
+}
+
 async function startRecording(onResult, onError) {
   try {
     activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mimeType = getSupportedMimeType();
     mediaRecorder = new MediaRecorder(activeStream, mimeType ? { mimeType } : {});
     audioChunks = [];
+
+    // Silence detection via AnalyserNode
+    const audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(activeStream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    const freqData = new Uint8Array(analyser.frequencyBinCount);
+    let silenceStart = null;
+
+    silenceInterval = setInterval(() => {
+      analyser.getByteFrequencyData(freqData);
+      const rms = Math.sqrt(freqData.reduce((s, v) => s + v * v, 0) / freqData.length);
+      if (rms < SILENCE_THRESHOLD) {
+        if (!silenceStart) silenceStart = Date.now();
+        else if (Date.now() - silenceStart >= SILENCE_DURATION_MS) stopRecording();
+      } else {
+        silenceStart = null;
+      }
+    }, 100);
+
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       clearTimeout(recordingTimeout);
+      clearInterval(silenceInterval); silenceInterval = null;
+      stopRecordingIndicator();
+      audioCtx.close();
       activeStream.getTracks().forEach(t => t.stop());
       activeStream = null;
       const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
@@ -890,7 +960,9 @@ async function startRecording(onResult, onError) {
         onError('Error al transcribir, intentá de nuevo');
       }
     };
+
     mediaRecorder.start();
+    startRecordingIndicator();
     recordingTimeout = setTimeout(() => stopRecording(), MAX_RECORDING_MS);
     isListening = true;
   } catch(e) {
@@ -902,6 +974,7 @@ async function startRecording(onResult, onError) {
 
 function stopRecording() {
   clearTimeout(recordingTimeout);
+  clearInterval(silenceInterval); silenceInterval = null;
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   isListening = false;
 }
