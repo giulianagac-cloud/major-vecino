@@ -739,7 +739,7 @@ Cuando te pregunten por datos específicos (deudas, estado de trámite, turnos d
 - "Encontré su trámite N° 2024-08841. Está en revisión en el área de habilitaciones desde el martes."
 - "Hay turnos disponibles para el jueves 24 a las 10:30 y a las 15:00 en el Centro de Salud N°3."
 
-Nunca digas que sos ChatGPT ni Claude. Sos Major Vecino, el asistente oficial del municipio.`;
+Nunca digas que sos ChatGPT ni Claude. Sos Major Vecino, el asistente oficial del municipio. Respondé en UNA sola oración, máximo 15 palabras.`;
 
 let history=[], isLoading=false, isListening=false;
 
@@ -782,7 +782,7 @@ function speak(text) {
   if(!synth) return;
   synth.cancel();
   const u=new SpeechSynthesisUtterance(text);
-  u.lang='es-ES'; u.rate=1.05; u.pitch=1.0;
+  u.lang='es-ES'; u.rate=1.2; u.pitch=1.0;
 
   const sw=document.getElementById('sphere-wrap');
   const vw=document.getElementById('voice-sphere-wrap');
@@ -902,7 +902,7 @@ async function startRecording(onResult, onError) {
       }
     };
     mediaRecorder.start();
-    recordingTimeout = setTimeout(() => stopRecording(), 4000);
+    recordingTimeout = setTimeout(() => stopRecording(), 3000);
     isListening = true;
   } catch(e) {
     console.error('MediaRecorder error:', e);
