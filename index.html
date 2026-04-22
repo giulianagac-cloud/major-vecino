@@ -159,6 +159,111 @@ nav {
 .hero-scroll svg { opacity: 0.4; }
 @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
+/* ─── HERO PHONE MOCKUP ─── */
+@keyframes heroPhoneIn {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-phone {
+  margin: 48px auto 40px;
+  animation: heroPhoneIn 0.9s ease-out 0.2s both;
+}
+.phone-frame {
+  width: 220px;
+  background: #1a1a2e;
+  border-radius: 38px;
+  padding: 10px;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.07),
+    0 0 40px rgba(0,102,255,0.35),
+    0 0 90px rgba(0,102,255,0.12),
+    0 28px 70px rgba(0,0,0,0.65);
+}
+.phone-side-btn {
+  position: absolute;
+  right: -3px; top: 80px;
+  width: 3px; height: 36px;
+  background: #2a2a44; border-radius: 0 3px 3px 0;
+}
+.phone-notch {
+  width: 56px; height: 8px;
+  background: #0d0d20;
+  border-radius: 0 0 8px 8px;
+  margin: 0 auto 6px;
+}
+.phone-screen {
+  background: #0A1628;
+  border-radius: 30px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  min-height: 370px;
+}
+.phone-sphere-row {
+  display: flex; justify-content: center;
+  padding: 14px 0 6px;
+}
+.phone-sphere {
+  width: 40px; height: 40px;
+  border-radius: 50%; overflow: hidden;
+  position: relative;
+  animation: breathe 4s ease-in-out infinite;
+}
+.phone-sphere::after {
+  content: '';
+  position: absolute; inset: -1px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 0 10px rgba(0,160,220,0.5);
+  pointer-events: none;
+}
+.phone-msgs {
+  flex: 1;
+  padding: 8px 10px 6px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.phone-bubble {
+  max-width: 88%;
+  padding: 8px 11px;
+  border-radius: 14px;
+  font-size: 11.5px; line-height: 1.45;
+  color: #fff;
+}
+.phone-bubble.bot {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom-left-radius: 3px;
+  align-self: flex-start;
+}
+.phone-bubble.user {
+  background: rgba(0,102,255,0.25);
+  border: 1px solid rgba(0,102,255,0.4);
+  border-bottom-right-radius: 3px;
+  align-self: flex-end;
+}
+.phone-input-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.phone-inp-fake {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50px;
+  padding: 6px 12px;
+  font-size: 10.5px; font-family: 'Inter', sans-serif;
+  color: rgba(255,255,255,0.25);
+}
+.phone-send-fake {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(0,102,255,0.55);
+  border: 1px solid rgba(0,102,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(0,102,255,0.4);
+}
+.phone-send-fake svg { width: 10px; height: 10px; fill: #fff; }
+
 /* ─── FEATURES ─── */
 .features {
   position: relative; z-index: 1;
@@ -564,6 +669,32 @@ footer span { color: rgba(255,255,255,0.4); }
     </div>
   </div>
 
+  <!-- PHONE MOCKUP -->
+  <div class="hero-phone">
+    <div class="phone-frame">
+      <div class="phone-side-btn"></div>
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="phone-sphere-row">
+          <div class="phone-sphere">
+            <canvas id="sphere-hero" width="40" height="40"></canvas>
+          </div>
+        </div>
+        <div class="phone-msgs">
+          <div class="phone-bubble bot">Hola, soy <strong>Major Vecino</strong>. ¿En qué te ayudo?</div>
+          <div class="phone-bubble user">¿Cuánto debo de ABL?</div>
+          <div class="phone-bubble bot">Su deuda es $45.320. Vence el 30 de abril.</div>
+        </div>
+        <div class="phone-input-row">
+          <div class="phone-inp-fake">Escribí tu consulta...</div>
+          <div class="phone-send-fake">
+            <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="hero-scroll">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M12 5v14M5 12l7 7 7-7"/>
@@ -745,6 +876,7 @@ function drawSphere(canvasId, size) {
 
 const smSphere = drawSphere('sphere-sm', 100);
 const lgSphere = drawSphere('sphere-lg', 160);
+const heroSphere = drawSphere('sphere-hero', 40);
 
 // ─── SYSTEM PROMPT ───
 const SYSTEM_PROMPT = `Sos Major Vecino, el asistente virtual de atención al ciudadano del Sistema Major Municipal de Argentina. Respondés consultas de vecinos sobre trámites municipales, deudas de tasas (ABL, automotores, comercios), turnos en hospitales o centros de salud municipales, habilitaciones comerciales, y gestión pública en general.
