@@ -1031,7 +1031,7 @@ async function connectVoiceAgent() {
     const cfg = await cfgRes.json();
     if (!cfg.deepgramKey) { setVoiceStatus('Falta DEEPGRAM_API_KEY', 'idle'); return; }
 
-    agentWs = new WebSocket('wss://agent.deepgram.com/agent', ['token', cfg.deepgramKey]);
+    agentWs = new WebSocket('wss://agent.deepgram.com/agent?token=' + cfg.deepgramKey);
     agentWs.binaryType = 'arraybuffer';
 
     agentWs.onopen = () => {
