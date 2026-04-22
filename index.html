@@ -106,6 +106,9 @@ nav {
   display: flex; flex-direction: column;
   align-items: center; text-align: center;
 }
+.hero-img-col {
+  position: relative;
+}
 .hero-img-col img {
   width: 100%; height: 500px;
   object-fit: cover; object-position: center top;
@@ -113,6 +116,71 @@ nav {
   opacity: 0.8;
   display: block;
 }
+.phone-overlay {
+  position: absolute;
+  top: 35%; left: 45%;
+  width: 180px;
+  background: #0A1628;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.07);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.po-header {
+  display: flex; align-items: center; gap: 6px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 1px;
+}
+.po-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #0066FF, #003399 60%, #000c28);
+  box-shadow: 0 0 6px rgba(0,102,255,0.5);
+  flex-shrink: 0;
+}
+.po-name { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.9); }
+.po-status { font-size: 8px; color: rgba(0,200,255,0.7); }
+.po-msgs { display: flex; flex-direction: column; gap: 5px; }
+.po-bubble {
+  padding: 5px 8px;
+  border-radius: 9px;
+  font-size: 10px; line-height: 1.4;
+  color: #fff; max-width: 90%;
+}
+.po-bubble.bot {
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom-left-radius: 2px;
+  align-self: flex-start;
+}
+.po-bubble.user {
+  background: rgba(0,102,255,0.3);
+  border: 1px solid rgba(0,102,255,0.45);
+  border-bottom-right-radius: 2px;
+  align-self: flex-end;
+}
+.po-input {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 2px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.po-inp-fake {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50px;
+  padding: 4px 9px;
+  font-size: 9px; font-family: 'Inter', sans-serif;
+  color: rgba(255,255,255,0.25);
+}
+.po-send {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,102,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.po-send svg { width: 9px; height: 9px; fill: #fff; }
 @media (max-width: 768px) {
   .hero { grid-template-columns: 1fr; padding: 120px 24px 80px; }
   .hero-img-col { display: none; }
@@ -593,6 +661,26 @@ footer span { color: rgba(255,255,255,0.4); }
 
   <div class="hero-img-col">
     <img src="phone.jpg" alt=""/>
+    <div class="phone-overlay">
+      <div class="po-header">
+        <div class="po-dot"></div>
+        <div>
+          <div class="po-name">Major Vecino</div>
+          <div class="po-status">● En línea</div>
+        </div>
+      </div>
+      <div class="po-msgs">
+        <div class="po-bubble bot">Hola, soy Major Vecino. ¿En qué te ayudo hoy?</div>
+        <div class="po-bubble user">¿Cuánto debo de ABL?</div>
+        <div class="po-bubble bot">Su deuda es $45.320. Vence el 30 de abril.</div>
+      </div>
+      <div class="po-input">
+        <div class="po-inp-fake">Escribí tu consulta...</div>
+        <div class="po-send">
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
