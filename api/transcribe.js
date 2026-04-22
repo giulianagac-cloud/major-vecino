@@ -1,5 +1,5 @@
 module.exports = async function handler(req, res) {
-  console.log('OPENAI_KEY EXISTS:', !!process.env.OPENAI_API_KEY);
+  console.log('DEEPGRAM_KEY EXISTS:', !!process.env.DEEPGRAM_API_KEY);
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -13,31 +13,25 @@ module.exports = async function handler(req, res) {
 
   try {
     const buffer = Buffer.from(audio, 'base64');
-    const ext = mimeType?.includes('mp4') ? 'mp4' : mimeType?.includes('ogg') ? 'ogg' : 'webm';
-    const filename = `audio.${ext}`;
 
-    const formData = new FormData();
-    const blob = new Blob([buffer], { type: mimeType || 'audio/webm' });
-    formData.append('file', blob, filename);
-    formData.append('model', 'whisper-1');
-    formData.append('language', 'es');
-
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    const response = await fetch('https://api.deepgram.com/v1/listen?language=es&model=nova-2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+        'Content-Type': mimeType || 'audio/webm',
       },
-      body: formData,
+      body: buffer,
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Whisper error:', JSON.stringify(data));
+      console.error('Deepgram error:', JSON.stringify(data));
       return res.status(400).json({ error: data });
     }
 
-    return res.status(200).json({ text: data.text });
+    const text = data.results?.channels[0]?.alternatives[0]?.transcript || '';
+    return res.status(200).json({ text });
   } catch (err) {
     console.error('Transcribe error:', err);
     return res.status(500).json({ error: err.message, details: err.toString() });
