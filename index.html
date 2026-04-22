@@ -912,7 +912,7 @@ async function startRecording(onResult, onError) {
       }
     };
     mediaRecorder.start();
-    recordingTimeout = setTimeout(() => stopRecording(), 10000);
+    recordingTimeout = setTimeout(() => stopRecording(), 4000);
     isListening = true;
   } catch(e) {
     console.error('MediaRecorder error:', e);
