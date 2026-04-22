@@ -283,7 +283,7 @@ nav {
   padding: 24px 0 12px;
 }
 .sphere-wrap {
-  width: 72px; height: 72px;
+  width: 100px; height: 100px;
   border-radius: 50%; overflow: hidden;
   animation: breathe 4s ease-in-out infinite;
   position: relative;
@@ -408,7 +408,7 @@ nav {
   flex: 1; gap: 20px; padding: 40px 24px;
 }
 .voice-sphere-wrap {
-  width: 130px; height: 130px; border-radius: 50%;
+  width: 160px; height: 160px; border-radius: 50%;
   overflow: hidden; cursor: pointer;
   animation: vbreathe 4s ease-in-out infinite;
   position: relative;
@@ -443,6 +443,18 @@ nav {
   font-family: 'Inter', sans-serif;
 }
 .voice-reset:hover { border-color: rgba(220,80,80,0.5); color: rgba(255,120,120,0.8); background: rgba(220,50,50,0.08); }
+.voice-stop {
+  display: none;
+  font-size: 13px; font-weight: 600;
+  padding: 9px 24px; border-radius: 50px;
+  border: 1px solid rgba(220,80,80,0.5);
+  background: rgba(220,50,50,0.15);
+  color: rgba(255,120,120,0.9);
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.voice-stop.visible { display: block; }
+.voice-stop:hover { background: rgba(220,50,50,0.3); border-color: rgba(220,80,80,0.8); }
 .rec-indicator {
   display: none; flex-direction: column; align-items: center; gap: 6px;
   width: 180px;
@@ -611,7 +623,7 @@ footer span { color: rgba(255,255,255,0.4); }
         <div class="card">
           <div class="sphere-area">
             <div class="sphere-wrap" id="sphere-wrap">
-              <canvas id="sphere-sm" width="72" height="72"></canvas>
+              <canvas id="sphere-sm" width="100" height="100"></canvas>
             </div>
           </div>
 
@@ -646,13 +658,14 @@ footer span { color: rgba(255,255,255,0.4); }
 
           <div class="voice-mode" id="voice-mode">
             <div class="voice-sphere-wrap" id="voice-sphere-wrap" onclick="toggleVoiceMic()">
-              <canvas id="sphere-lg" width="130" height="130"></canvas>
+              <canvas id="sphere-lg" width="160" height="160"></canvas>
             </div>
             <div class="voice-status" id="voice-status">Tocá para hablar</div>
             <div class="rec-indicator" id="rec-indicator">
               <div class="rec-bar-track"><div class="rec-bar-fill" id="rec-bar-fill"></div></div>
               <div class="rec-timer" id="rec-timer">0.0s / 8s</div>
             </div>
+            <button class="voice-stop" id="voice-stop" onclick="stopVoice()">■ Parar</button>
             <div class="voice-hint">Major Vecino te escucha<br>y responde en voz alta</div>
             <button class="voice-reset" onclick="resetVoice()">↺ Nueva conversación</button>
           </div>
@@ -726,8 +739,8 @@ function drawSphere(canvasId, size) {
   return { setState: s => { state = s; } };
 }
 
-const smSphere = drawSphere('sphere-sm', 72);
-const lgSphere = drawSphere('sphere-lg', 130);
+const smSphere = drawSphere('sphere-sm', 100);
+const lgSphere = drawSphere('sphere-lg', 160);
 
 // ─── SYSTEM PROMPT ───
 const SYSTEM_PROMPT = `Sos Major Vecino, el asistente virtual de atención al ciudadano del Sistema Major Municipal de Argentina. Respondés consultas de vecinos sobre trámites municipales, deudas de tasas (ABL, automotores, comercios), turnos en hospitales o centros de salud municipales, habilitaciones comerciales, y gestión pública en general.
@@ -939,6 +952,23 @@ function toggleMic() {
   );
 }
 
+function setStopBtn(visible) {
+  const btn = document.getElementById('voice-stop');
+  if (btn) btn.classList.toggle('visible', visible);
+}
+
+function stopVoice() {
+  stopRecording();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  isListening = false;
+  setStopBtn(false);
+  const vw = document.getElementById('voice-sphere-wrap');
+  const st = document.getElementById('voice-status');
+  vw.classList.remove('listening', 'speaking');
+  st.textContent = 'Tocá para hablar';
+  if (lgSphere) lgSphere.setState('idle');
+}
+
 function resetVoice() {
   stopRecording();
   if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -961,16 +991,19 @@ async function toggleVoiceMic() {
   }
   vw.classList.add('listening'); st.textContent = 'Grabando...';
   if (lgSphere) lgSphere.setState('listening');
+  setStopBtn(true);
   startRecording(
     async (text) => {
       vw.classList.remove('listening'); st.textContent = 'Procesando...';
       if (lgSphere) lgSphere.setState('idle');
       const reply = await callClaude(text);
+      setStopBtn(false);
       speak(reply);
     },
     (msg) => {
       vw.classList.remove('listening'); st.textContent = msg;
       if (lgSphere) lgSphere.setState('idle');
+      setStopBtn(false);
       setTimeout(() => { st.textContent = 'Tocá para hablar'; }, 3000);
     }
   );
