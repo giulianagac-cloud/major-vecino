@@ -940,29 +940,39 @@ function removeTyping() { const t=document.getElementById('typing'); if(t)t.remo
 
 // ─── VOZ ───
 function speak(text) {
-  const synth=window.speechSynthesis;
-  if(!synth) return;
-  synth.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='es-ES'; u.rate=1.2; u.pitch=1.0;
+  const synth = window.speechSynthesis;
+  const sw = document.getElementById('sphere-wrap');
+  const vw = document.getElementById('voice-sphere-wrap');
+  const st = document.getElementById('voice-status');
 
-  const sw=document.getElementById('sphere-wrap');
-  const vw=document.getElementById('voice-sphere-wrap');
-  const st=document.getElementById('voice-status');
-  u.onstart=()=>{
-    if(sw) sw.classList.add('speaking');
-    if(vw) vw.classList.add('speaking');
-    if(st) st.textContent='Hablando...';
-    if(smSphere) smSphere.setState('speaking');
-    if(lgSphere) lgSphere.setState('speaking');
-  };
-  u.onend=()=>{
+  function resetState() {
     if(sw) sw.classList.remove('speaking');
     if(vw) vw.classList.remove('speaking');
-    if(st) st.textContent='Tocá para hablar';
+    if(st) st.textContent = 'Tocá para hablar';
     if(smSphere) smSphere.setState('idle');
     if(lgSphere) lgSphere.setState('idle');
-  };
+  }
+
+  if(!synth) { resetState(); return; }
+  synth.cancel();
+
+  // Actualizar estado de inmediato (onstart no es confiable en iOS)
+  if(sw) sw.classList.add('speaking');
+  if(vw) vw.classList.add('speaking');
+  if(st) st.textContent = 'Hablando...';
+  if(smSphere) smSphere.setState('speaking');
+  if(lgSphere) lgSphere.setState('speaking');
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'es-ES'; u.rate = 1.1; u.pitch = 1.0;
+
+  // Fallback timer por si onend no dispara (bug iOS Safari)
+  const estimatedMs = Math.max(2500, text.split(' ').length * 450);
+  const fallback = setTimeout(resetState, estimatedMs);
+
+  u.onend   = () => { clearTimeout(fallback); resetState(); };
+  u.onerror = () => { clearTimeout(fallback); resetState(); };
+
   synth.speak(u);
 }
 
