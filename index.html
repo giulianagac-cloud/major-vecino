@@ -984,37 +984,107 @@ async function sendMessage() {
 function sendChip(text) { document.getElementById('inp').value=text; sendMessage(); }
 function handleKey(e) { if(e.key==='Enter') sendMessage(); }
 
-// ─── GRABACIÓN CON WEB SPEECH API (sin Whisper, sin delay) ───
-let activeRecognition = null;
+// ─── GRABACIÓN CON MEDIARECORDER + WHISPER + DETECCIÓN DE SILENCIO ───
+let mediaRecorder = null, audioChunks = [], activeStream = null;
+let audioCtx = null, silenceTimer = null, maxTimer = null, silenceActive = false;
 
-function startSpeechRecognition(onResult, onError) {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { onError('Usá Chrome o Edge para la voz'); return; }
+const SILENCE_THRESHOLD = 12;  // volumen 0-128 debajo del cual = silencio
+const SILENCE_MS = 700;        // ms de silencio antes de cortar
+const MAX_MS = 7000;           // timeout máximo de seguridad
 
-  activeRecognition = new SR();
-  activeRecognition.lang = 'es-AR';
-  activeRecognition.continuous = false;
-  activeRecognition.interimResults = false;
-  activeRecognition.maxAlternatives = 1;
+function getSupportedMimeType() {
+  return ['audio/mp4','audio/webm','audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
 
-  activeRecognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    isListening = false; activeRecognition = null;
-    if (text?.trim()) onResult(text.trim());
-    else onError('No te escuché, tocá de nuevo');
-  };
-  activeRecognition.onerror = (e) => {
-    isListening = false; activeRecognition = null;
-    if (e.error !== 'aborted') onError('No te escuché, tocá de nuevo');
-  };
-  activeRecognition.onend = () => { isListening = false; };
+function blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onloadend = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
 
-  activeRecognition.start();
-  isListening = true;
+async function transcribeAudio(blob) {
+  const base64 = await blobToBase64(blob);
+  const res = await fetch('/api/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audio: base64, mimeType: blob.type })
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(JSON.stringify(data.error));
+  return data.text;
+}
+
+function startSilenceDetection(onSilence) {
+  const buf = new Uint8Array(analyserNode.fftSize);
+  silenceActive = true;
+  function tick() {
+    if (!silenceActive) return;
+    analyserNode.getByteTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += Math.abs(buf[i] - 128);
+    const vol = sum / buf.length;
+    if (vol < SILENCE_THRESHOLD) {
+      if (!silenceTimer) silenceTimer = setTimeout(() => { silenceActive = false; onSilence(); }, SILENCE_MS);
+    } else {
+      if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    }
+    if (silenceActive) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+let analyserNode = null;
+
+async function startRecording(onResult, onError) {
+  try {
+    activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = getSupportedMimeType();
+    mediaRecorder = new MediaRecorder(activeStream, mimeType ? { mimeType } : {});
+    audioChunks = [];
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 512;
+    audioCtx.createMediaStreamSource(activeStream).connect(analyserNode);
+
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      silenceActive = false;
+      clearTimeout(silenceTimer); silenceTimer = null;
+      clearTimeout(maxTimer); maxTimer = null;
+      activeStream.getTracks().forEach(t => t.stop()); activeStream = null;
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      try {
+        const text = await transcribeAudio(blob);
+        if (text?.trim()) onResult(text.trim());
+        else onError('No te escuché, tocá de nuevo');
+      } catch(e) {
+        console.error('Transcription error:', e);
+        onError('Error al transcribir, intentá de nuevo');
+      }
+    };
+
+    mediaRecorder.start();
+    isListening = true;
+    // Espera 400ms antes de activar detección (evita cortar la primera sílaba)
+    setTimeout(() => startSilenceDetection(() => stopRecording()), 400);
+    maxTimer = setTimeout(() => stopRecording(), MAX_MS);
+  } catch(e) {
+    console.error('MediaRecorder error:', e);
+    onError('No se pudo acceder al micrófono');
+    isListening = false;
+  }
 }
 
 function stopRecording() {
-  if (activeRecognition) { activeRecognition.stop(); activeRecognition = null; }
+  silenceActive = false;
+  clearTimeout(silenceTimer); silenceTimer = null;
+  clearTimeout(maxTimer); maxTimer = null;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   isListening = false;
 }
 
@@ -1022,7 +1092,7 @@ function toggleMic() {
   const btn = document.getElementById('mic-btn');
   if (isListening) { stopRecording(); btn.classList.remove('listening'); return; }
   btn.classList.add('listening');
-  startSpeechRecognition(
+  startRecording(
     (text) => {
       btn.classList.remove('listening');
       document.getElementById('inp').value = text;
@@ -1070,7 +1140,7 @@ async function toggleVoiceMic() {
   vw.classList.add('listening'); st.textContent = 'Escuchando...';
   if (lgSphere) lgSphere.setState('listening');
   setStopBtn(true);
-  startSpeechRecognition(
+  startRecording(
     async (text) => {
       vw.classList.remove('listening'); st.textContent = 'Respondiendo...';
       if (lgSphere) lgSphere.setState('idle');
