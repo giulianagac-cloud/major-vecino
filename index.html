@@ -96,10 +96,42 @@ nav {
 .hero {
   position: relative; z-index: 1;
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 60px;
+  padding: 120px 72px 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.hero-content {
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 120px 24px 80px;
-  text-align: center;
+  align-items: center; text-align: center;
+}
+.hero-img-col {
+  position: relative;
+}
+.hero-img-col img {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  border-radius: 24px;
+  opacity: 0.7;
+  display: block;
+}
+.hero-img-col::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(to bottom, transparent 50%, rgba(10,22,40,0.7) 100%);
+  pointer-events: none;
+}
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 120px 24px 80px;
+  }
+  .hero-img-col { display: none; }
 }
 
 .hero-tag {
@@ -540,37 +572,43 @@ footer span { color: rgba(255,255,255,0.4); }
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-tag">
-    <div class="hero-tag-dot"></div>
-    Nuevo módulo para Major Municipal
+  <div class="hero-content">
+    <div class="hero-tag">
+      <div class="hero-tag-dot"></div>
+      Nuevo módulo para Major Municipal
+    </div>
+
+    <h1>El vecino habla.<br><span>El municipio responde.</span></h1>
+
+    <p class="hero-sub">
+      Un asistente con IA embebible en cualquier web municipal. Sin formularios, sin filas, sin apps. El vecino pregunta en voz alta y recibe respuesta en segundos.
+    </p>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">+2M</div>
+        <div class="stat-label">vecinos en La Matanza</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">30%</div>
+        <div class="stat-label">son adultos mayores</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">letras que necesitan escribir</div>
+      </div>
+    </div>
+
+    <div class="hero-scroll">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+      Probalo abajo
+    </div>
   </div>
 
-  <h1>El vecino habla.<br><span>El municipio responde.</span></h1>
-
-  <p class="hero-sub">
-    Un asistente con IA embebible en cualquier web municipal. Sin formularios, sin filas, sin apps. El vecino pregunta en voz alta y recibe respuesta en segundos.
-  </p>
-
-  <div class="hero-stats">
-    <div class="stat">
-      <div class="stat-num">+2M</div>
-      <div class="stat-label">vecinos en La Matanza</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">30%</div>
-      <div class="stat-label">son adultos mayores</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num">0</div>
-      <div class="stat-label">letras que necesitan escribir</div>
-    </div>
-  </div>
-
-  <div class="hero-scroll">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 5v14M5 12l7 7 7-7"/>
-    </svg>
-    Probalo abajo
+  <div class="hero-img-col">
+    <img src="phone.jpg" alt="Mayor Vecino en uso"/>
   </div>
 </section>
 
