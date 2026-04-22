@@ -20,6 +20,7 @@ module.exports = async function handler(req, res) {
     formData.append('file', blob, `audio.${ext}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'es');
+    formData.append('response_format', 'text');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -29,14 +30,14 @@ module.exports = async function handler(req, res) {
       body: formData,
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error('Whisper error:', JSON.stringify(data));
-      return res.status(400).json({ error: data });
+      const error = await response.json();
+      console.error('Whisper error:', JSON.stringify(error));
+      return res.status(400).json({ error });
     }
 
-    return res.status(200).json({ text: data.text });
+    const text = await response.text();
+    return res.status(200).json({ text: text.trim() });
   } catch (err) {
     console.error('Transcribe error:', err);
     return res.status(500).json({ error: err.message, details: err.toString() });

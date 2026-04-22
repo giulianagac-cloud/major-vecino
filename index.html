@@ -782,13 +782,7 @@ function speak(text) {
   if(!synth) return;
   synth.cancel();
   const u=new SpeechSynthesisUtterance(text);
-  u.lang='es-AR'; u.rate=1.0; u.pitch=1.0;
-
-  const voices = synth.getVoices();
-  const esVoice = voices.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('fem'))
-    || voices.find(v => v.lang.startsWith('es'))
-    || null;
-  if(esVoice) u.voice = esVoice;
+  u.lang='es-ES'; u.rate=1.05; u.pitch=1.0;
 
   const sw=document.getElementById('sphere-wrap');
   const vw=document.getElementById('voice-sphere-wrap');
@@ -810,10 +804,6 @@ function speak(text) {
   synth.speak(u);
 }
 
-if(window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-  window.speechSynthesis.getVoices();
-}
 
 // ─── API CLAUDE (via backend) ───
 async function callClaude(msg) {

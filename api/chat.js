@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   try {
     console.log('Body que se manda a Anthropic:', JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 150,
       system: system?.substring(0, 50),
       messages: messages
     }));
@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
+        max_tokens: 150,
         ...(system && { system }),
         messages,
       }),
